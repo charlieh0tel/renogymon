@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   build-deb-collector:
-    uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@main
+    uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@v1
     with:
       package: renogymon-collector
       build-deps: "libdbus-1-dev"
@@ -21,7 +21,7 @@ jobs:
     secrets: inherit
 
   build-deb-aprs:
-    uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@main
+    uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@v1
     with:
       package: renogymon-aprs
       build-deps: "libdbus-1-dev"
@@ -29,14 +29,14 @@ jobs:
     secrets: inherit
 
   build-deb-archiver:
-    uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@main
+    uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@v1
     with:
       package: renogymon-archiver
       artifact-suffix: archiver
     secrets: inherit
 
   build-deb-puller:
-    uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@main
+    uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@v1
     with:
       package: renogymon-archiver-puller
       artifact-suffix: puller
