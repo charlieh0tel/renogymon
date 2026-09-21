@@ -8,39 +8,43 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   build-deb-collector:
     uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@v1
+    # Scoped to this job.  At workflow level it would also be granted to
+    # the dispatch job below, which authenticates with its own PAT and
+    # writes nothing here.
+    permissions:
+      contents: write
     with:
       package: renogymon-collector
       build-deps: "libdbus-1-dev"
       artifact-suffix: collector
-    secrets: inherit
 
   build-deb-aprs:
     uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@v1
+    permissions:
+      contents: write
     with:
       package: renogymon-aprs
       build-deps: "libdbus-1-dev"
       artifact-suffix: aprs
-    secrets: inherit
 
   build-deb-archiver:
     uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@v1
+    permissions:
+      contents: write
     with:
       package: renogymon-archiver
       artifact-suffix: archiver
-    secrets: inherit
 
   build-deb-puller:
     uses: charlieh0tel/deb-workflows/.github/workflows/rust-build-deb.yml@v1
+    permissions:
+      contents: write
     with:
       package: renogymon-archiver-puller
       artifact-suffix: puller
-    secrets: inherit
 
   tests:
     runs-on: ubuntu-22.04
