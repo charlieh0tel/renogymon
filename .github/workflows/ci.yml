@@ -14,6 +14,7 @@ jobs:
       build-deps: "libdbus-1-dev"
       # so clippy sees every target
       check-args: "--workspace --all-targets"
-      # Stable rustfmt, not the default nightly: no rustfmt.toml here, so the
-      # check should agree with the `cargo fmt` a contributor runs.
-      fmt-toolchain: ""
+      # fmt-toolchain is left at its default of nightly on purpose: this repo
+      # has a rustfmt.toml setting imports_granularity, which is a nightly-only
+      # option. Stable rustfmt ignores it with a warning, so the check would
+      # pass on imports the setting is supposed to govern.
