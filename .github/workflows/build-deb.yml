@@ -17,6 +17,9 @@ jobs:
     permissions:
       contents: write
     with:
+      # The `tests` job below already runs the whole workspace, including the
+      # gated system tests, so the four deb builds do not each run it again.
+      run-tests: false
       package: renogymon-collector
       build-deps: "libdbus-1-dev"
       artifact-suffix: collector
@@ -26,6 +29,7 @@ jobs:
     permissions:
       contents: write
     with:
+      run-tests: false
       package: renogymon-aprs
       build-deps: "libdbus-1-dev"
       artifact-suffix: aprs
@@ -35,6 +39,7 @@ jobs:
     permissions:
       contents: write
     with:
+      run-tests: false
       package: renogymon-archiver
       artifact-suffix: archiver
 
@@ -43,16 +48,21 @@ jobs:
     permissions:
       contents: write
     with:
+      run-tests: false
       package: renogymon-archiver-puller
       artifact-suffix: puller
 
   tests:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+        # A pinned rust-toolchain action cannot take the channel from the ref,
+        # so the channel is named here.
+        uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de  # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6  # v2.9.2
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -70,7 +80,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Trigger APT repo rebuild
-        uses: peter-evans/repository-dispatch@v4
+        # Pinned: this step is handed a token that can write to
+        # charlieh0tel/apt-repo, and a tag can be moved to point at anything.
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697  # v4.0.1
         with:
           token: ${{ secrets.APT_REPO_TOKEN }}
           repository: charlieh0tel/apt-repo
