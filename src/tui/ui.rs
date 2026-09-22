@@ -210,7 +210,7 @@ fn draw_battery_list(frame: &mut Frame, app: &mut App, area: Rect) {
                       alarm_indicator),
                 Span::raw(format!(
                     "{} {:4.1}% {:.1}V",
-                    &b.serial, b.soc_percent, b.module_voltage
+                    b.serial, b.soc_percent, b.module_voltage
                 )),
             ]);
 

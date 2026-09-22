@@ -219,9 +219,11 @@ impl Transport for Bt2Transport {
         }
 
         Ok(response.payload[1..]
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .take(quantity as usize)
-            .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]))
+            .map(|&chunk| u16::from_be_bytes(chunk))
             .collect())
     }
 
