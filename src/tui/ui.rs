@@ -10,6 +10,8 @@ use ratatui::layout::Constraint;
 use ratatui::layout::Direction;
 use ratatui::layout::Layout;
 use ratatui::layout::Rect;
+use ratatui::macros::line;
+use ratatui::macros::span;
 use ratatui::style::Color;
 use ratatui::style::Modifier;
 use ratatui::style::Style;
@@ -26,8 +28,6 @@ use ratatui::widgets::List;
 use ratatui::widgets::ListItem;
 use ratatui::widgets::Paragraph;
 use ratatui::widgets::Tabs;
-use ratatui_macros::line;
-use ratatui_macros::span;
 use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
