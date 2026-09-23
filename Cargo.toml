@@ -26,7 +26,7 @@ repository = "https://github.com/charlieh0tel/renogymon"
 [workspace.dependencies]
 renogy = { path = "." }
 agw = "0.1.9"
-arrow = { version = "58", default-features = false }
+arrow = { version = "59", default-features = false }
 async-trait = "0.1.81"
 axum = "0.8"
 bitflags = "2.4.1"
@@ -39,7 +39,7 @@ crossterm = "0.28"
 fs2 = "0.4"
 futures = "0.3"
 influxdb-line-protocol = "2"
-parquet = { version = "58", default-features = false, features = ["arrow", "snap"] }
+parquet = { version = "59", default-features = false, features = ["arrow", "snap"] }
 prometheus-client = "0.23"
 prometheus-http-query = { version = "0.8", default-features = false, features = ["rustls-tls"] }
 ratatui = "0.29"
