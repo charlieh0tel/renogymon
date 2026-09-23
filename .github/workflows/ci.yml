@@ -14,7 +14,12 @@ jobs:
       build-deps: "libdbus-1-dev"
       # so clippy sees every target
       check-args: "--workspace --all-targets"
-      # fmt-toolchain is left at its default of nightly on purpose: this repo
-      # has a rustfmt.toml setting imports_granularity, which is a nightly-only
-      # option. Stable rustfmt ignores it with a warning, so the check would
-      # pass on imports the setting is supposed to govern.
+      # Nightly, because rustfmt.toml sets imports_granularity, which is a
+      # nightly-only option: stable rustfmt warns and ignores it, so the check
+      # would pass on exactly the imports the setting governs.
+      #
+      # Pinned to a date rather than tracking `nightly`. rustfmt's output moves
+      # between nightlies, and an unpinned one turns a formatting check into
+      # something that can redden on a morning nobody touched the code. Bump it
+      # deliberately, and run `cargo +nightly-<date> fmt --all` when you do.
+      fmt-toolchain: "nightly-2026-09-15"
