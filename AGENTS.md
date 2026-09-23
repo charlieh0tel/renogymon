@@ -1,6 +1,7 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to agents when working with code in this
+repository.
 
 # Critical Rules
 
@@ -18,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Revision Control
 
-- Do not add Claude attribution to commit messages.
+- Do not add AI attribution or Co-Authored-By lines to commit messages.
 - Do not commit without permission.
 - PRs should generally be comprised of one functional change; suggest
   making a commit before moving onto something unrelated.
@@ -28,6 +29,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   the body may be specific about them.
 - All tests must pass before committing.
 - Never use -a to commit; always enumerate the files.
+- Never use `git add -A`; add only files you edited, by name.
 
 
 # Programming Rules
@@ -46,7 +48,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Rust Rules
 
-- Use the latest stable Rust edition.
+- Use the latest stable Rust edition (currently 2024).
+- Async via tokio.
+- `cargo +nightly fmt` and `cargo clippy` are always OK to run.
 - Always run `cargo +nightly fmt` after changes and before commits.
 - Always run `cargo clippy` after changes and before commits; fix
   simple warnings, ask for guidance on complicated ones.
