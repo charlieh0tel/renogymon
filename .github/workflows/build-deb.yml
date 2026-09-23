@@ -56,12 +56,18 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      # dtolnay/rust-toolchain does not read rust-toolchain.toml, so take the
+      # channel from it, as the deb-workflows reusable workflows do.
+      - name: Resolve Rust toolchain
+        id: rust-toolchain
+        run: |
+          TOOLCHAIN=$(sed -n 's/^[[:space:]]*channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' rust-toolchain.toml | head -n 1)
+          echo "Rust toolchain: ${TOOLCHAIN}"
+          echo "toolchain=${TOOLCHAIN}" >> "${GITHUB_OUTPUT}"
       - name: Install Rust toolchain
-        # A pinned rust-toolchain action cannot take the channel from the ref,
-        # so the channel is named here.
         uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de  # v1
         with:
-          toolchain: stable
+          toolchain: ${{ steps.rust-toolchain.outputs.toolchain }}
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6  # v2.9.2
       - name: Install dependencies
         run: |

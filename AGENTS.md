@@ -49,6 +49,7 @@ repository.
 ## Rust Rules
 
 - Use the latest stable Rust edition (currently 2024).
+- Toolchain is pinned in `rust-toolchain.toml`; bump it deliberately.
 - Async via tokio.
 - `cargo +nightly fmt` and `cargo clippy` are always OK to run.
 - Always run `cargo +nightly fmt` after changes and before commits.
