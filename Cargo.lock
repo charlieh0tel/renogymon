@@ -2670,7 +2670,7 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "renogy"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "async-trait",
  "axum",
@@ -2701,7 +2701,7 @@ dependencies = [
 
 [[package]]
 name = "renogymon-aprs"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "agw",
  "async-trait",
@@ -2717,7 +2717,7 @@ dependencies = [
 
 [[package]]
 name = "renogymon-archiver"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "arrow",
  "axum",
@@ -2737,7 +2737,7 @@ dependencies = [
 
 [[package]]
 name = "renogymon-archiver-puller"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "chrono",
  "clap",
@@ -2749,7 +2749,7 @@ dependencies = [
 
 [[package]]
 name = "renogymon-collector"
-version = "1.0.0"
+version = "1.1.0"
 dependencies = [
  "clap",
  "crossterm",
