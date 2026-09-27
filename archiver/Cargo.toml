@@ -33,6 +33,7 @@ maintainer-scripts = "debian"
 assets = [
     ["target/release/renogymon-archiver", "usr/bin/", "755"],
     ["sysusers/renogymon-archiver.conf", "usr/lib/sysusers.d/renogymon-archiver.conf", "644"],
+    ["tmpfiles/renogymon-archiver.conf", "usr/lib/tmpfiles.d/renogymon-archiver.conf", "644"],
 ]
 
 [package.metadata.deb.systemd-units]

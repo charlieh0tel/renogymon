@@ -3,6 +3,11 @@ set -e
 
 if [ "$1" = "configure" ]; then
     systemd-sysusers /usr/lib/sysusers.d/renogymon-archiver.conf >/dev/null 2>&1 || true
+    # sysusers never modifies an existing user; fix accounts created before
+    # the shell was set.  sshd runs the forced rrsync command via this shell.
+    if getent passwd renogymon-archiver | grep -q 'nologin$'; then
+        usermod -s /bin/sh renogymon-archiver
+    fi
 fi
 
 #DEBHELPER#

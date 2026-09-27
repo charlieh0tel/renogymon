@@ -237,8 +237,9 @@ renogymon/                  # root = library crate (renogy)
 - `collector`/`aprs` depend on the `renogy` lib (path); `archiver`/`puller` are
   self-contained (the archiver pulls `arrow`/`parquet` out of the lib entirely).
 - Each member ships its own systemd unit(s), `sysusers.d` user, and (collector/aprs)
-  `/etc/default/<pkg>` conf-file. Units are plain assets, **not** auto-enabled —
-  enable with `systemctl enable --now` after configuring.
+  `/etc/default/<pkg>` conf-file. Units use cargo-deb's `systemd-units`
+  integration with `enable = true, start = true`: install enables each timer (or
+  service) and starts it immediately.  Configure promptly after install.
 - `archiver` depends on `rsync` (the Pi serves the rrsync pull) and recommends
   `openssh-server`.
 - Collector BT-2 access relies on modern BlueZ's default D-Bus policy — no BlueZ
@@ -267,6 +268,13 @@ u     renogymon-archiver  -   "Renogy archiver"  /var/lib/renogymon-archiver  /b
 The shell is `/bin/sh` (not `nologin`) because sshd execs the forced rrsync command
 via the user's shell; the `command=` restriction in `authorized_keys` is what actually
 confines the account. Key-only, no password.
+
+sysusers never modifies an existing user, so the postinst also switches an existing
+`renogymon-archiver` account from `nologin` to `/bin/sh`.
+
+`tmpfiles/renogymon-archiver.conf` (installed to `/usr/lib/tmpfiles.d/`) creates the
+home, `staging/`, `.ssh/` (0700) and an empty `.ssh/authorized_keys` (0600), all
+owned by `renogymon-archiver`, so key setup is just adding one line.
 
 ### renogymon-archiver-export.service
 
@@ -357,8 +365,8 @@ like the main crate. It installs:
 
 ```
 /usr/bin/renogymon-archiver-puller                          # the Rust binary
-/usr/lib/systemd/system/renogymon-archiver-puller.service     # disabled by default
-/usr/lib/systemd/system/renogymon-archiver-puller.timer       # disabled by default
+/usr/lib/systemd/system/renogymon-archiver-puller.service     # started on install
+/usr/lib/systemd/system/renogymon-archiver-puller.timer       # enabled on install
 /usr/lib/sysusers.d/renogymon-archiver-puller.conf          # creates the puller user
 /usr/lib/tmpfiles.d/renogymon-archiver-puller.conf          # creates state + dest dirs
 /etc/default/renogymon-archiver-puller                      # conf-file (config)
@@ -415,9 +423,16 @@ assets = [
 conf-files = ["/etc/default/renogymon-archiver-puller"]
 ```
 
-Units are plain assets (not cargo-deb's auto-enabling `systemd-units` integration), so
-the timer ships **disabled** — enable it after configuring `ARCHIVER_REMOTE` and
-installing the key.
+The `systemd-units` integration enables the timer and starts the service on
+install.  Until `ARCHIVER_REMOTE` is set and the key is installed on the Pi, that
+first pull fails (and retries per `Restart=on-failure`); this is harmless.  The
+service is a oneshot with no `[Install]` section, so enable the **timer**, not the
+service; a manual `systemctl start` blocks until the pull (and any restart delay)
+finishes.
+
+Likewise the Pi's `renogymon-archiver` package enables the export timer and starts an
+export on install.  If derived metrics need backfilling into VM, do that before the
+first export, since exported days are never rewritten.
 
 ### Config — `/etc/default/renogymon-archiver-puller`
 
@@ -498,12 +513,13 @@ ssh-keygen -t ed25519 -f /var/lib/renogymon-archiver-puller/id_ed25519 -N "" \
   -C "renogymon-archiver-puller"
 ```
 
-2. **Install the public key on the Pi**, in `renogymon-archiver`'s
-   `~/.ssh/authorized_keys` (i.e. `/var/lib/renogymon-archiver/.ssh/authorized_keys`),
-   locked to rrsync scoped to the staging dir:
+2. **Install the public key on the Pi** by adding one line to
+   `/var/lib/renogymon-archiver/.ssh/authorized_keys` (the package creates the file),
+   locked to rrsync scoped to the staging dir.  `from=` optionally limits the key to
+   the archive host's (Tailscale) address:
 
 ```
-command="rrsync /var/lib/renogymon-archiver/staging",no-pty,no-agent-forwarding,no-port-forwarding,no-X11-forwarding ssh-ed25519 AAAA... renogymon-archiver-puller
+from="100.x.y.z",command="rrsync /var/lib/renogymon-archiver/staging",no-pty,no-agent-forwarding,no-port-forwarding,no-X11-forwarding ssh-ed25519 AAAA... renogymon-archiver-puller
 ```
 
 `rrsync` (ships with rsync) confines the connection to that one directory and rejects
@@ -515,12 +531,18 @@ The Pi never holds a private key. If it's lost or stolen, no credential leaks.
 ## VM Retention & First-Run Cutover (data-loss safety)
 
 The archiver only **reads** from VM (`/api/v1/export`); it never deletes or mutates
-VM data. The single data-loss vector is reducing VM retention — so reduce it **last**,
-only after the full history is archived and verified.
+VM data. The single data-loss vector is VM retention expiring data before it is
+archived — so reduce retention **last**, only after the full history is archived and
+verified.
+
+VM's default `-retentionPeriod` is **1 month**, not unlimited.  If it was never set,
+data older than ~30 days is already gone and more expires daily until export runs.
 
 **Cutover order — never lower retention first:**
 
-1. Leave VM retention at its current (large/default) value.
+1. Check VM's `-retentionPeriod` (e.g. `systemctl cat victoria-metrics`).  If it is
+   unset or shorter than the history you want to keep, raise it now (e.g.
+   `-retentionPeriod=100y`); otherwise leave it as is.
 2. Run `renogymon-archiver export` — backfills the entire VM history into staging
    (one Parquet file per day, earliest day → yesterday).
 3. Stand up the puller; pull everything to the archive host.
