@@ -1,6 +1,6 @@
 use crate::collector::buffer::SampleBuffer;
+use crate::collector::energy::Sample;
 use crate::collector::metrics::batch_to_influx;
-use crate::query::BatteryInfo;
 use reqwest::Client;
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
@@ -73,7 +73,7 @@ impl VmWriter {
         }
     }
 
-    async fn write_samples(&self, samples: &[BatteryInfo]) -> Result<(), String> {
+    async fn write_samples(&self, samples: &[Sample]) -> Result<(), String> {
         let body = batch_to_influx(samples);
 
         let response = self

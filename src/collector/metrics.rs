@@ -1,3 +1,4 @@
+use crate::collector::energy::Sample;
 use crate::query::BatteryInfo;
 use influxdb_line_protocol::LineProtocolBuilder;
 use prometheus_client::encoding::EncodeLabelSet;
@@ -36,8 +37,10 @@ pub struct PrometheusMetrics {
     pub heater_temperature: Family<SensorLabels, Gauge<f64, AtomicU64>>,
     pub module_voltage: Family<BatteryLabels, Gauge<f64, AtomicU64>>,
     pub current: Family<BatteryLabels, Gauge<f64, AtomicU64>>,
+    pub power_watts: Family<BatteryLabels, Gauge<f64, AtomicU64>>,
     pub remaining_capacity_ah: Family<BatteryLabels, Gauge<f64, AtomicU64>>,
     pub total_capacity_ah: Family<BatteryLabels, Gauge<f64, AtomicU64>>,
+    pub remaining_energy_wh: Family<BatteryLabels, Gauge<f64, AtomicU64>>,
     pub soc_percent: Family<BatteryLabels, Gauge<f64, AtomicU64>>,
     pub cycle_count: Family<BatteryLabels, Gauge<f64, AtomicU64>>,
     pub charge_voltage_limit: Family<BatteryLabels, Gauge<f64, AtomicU64>>,
@@ -94,6 +97,11 @@ impl PrometheusMetrics {
             self.current.clone(),
         );
         registry.register(
+            "renogy_power_watts",
+            "Battery power in watts (positive=charging, negative=discharging)",
+            self.power_watts.clone(),
+        );
+        registry.register(
             "renogy_remaining_capacity_ah",
             "Remaining capacity in amp-hours",
             self.remaining_capacity_ah.clone(),
@@ -102,6 +110,11 @@ impl PrometheusMetrics {
             "renogy_total_capacity_ah",
             "Total capacity in amp-hours",
             self.total_capacity_ah.clone(),
+        );
+        registry.register(
+            "renogy_remaining_energy_wh",
+            "Stored energy in watt-hours at present pack voltage",
+            self.remaining_energy_wh.clone(),
         );
         registry.register(
             "renogy_soc_percent",
@@ -245,12 +258,18 @@ impl PrometheusMetrics {
         self.current
             .get_or_create(&battery_labels)
             .set(info.current as f64);
+        self.power_watts
+            .get_or_create(&battery_labels)
+            .set(info.power_watts() as f64);
         self.remaining_capacity_ah
             .get_or_create(&battery_labels)
             .set(info.remaining_capacity as f64);
         self.total_capacity_ah
             .get_or_create(&battery_labels)
             .set(info.total_capacity as f64);
+        self.remaining_energy_wh
+            .get_or_create(&battery_labels)
+            .set(info.remaining_energy_wh() as f64);
         self.soc_percent
             .get_or_create(&battery_labels)
             .set(info.soc_percent as f64);
@@ -330,7 +349,7 @@ impl PrometheusMetrics {
     }
 }
 
-pub fn batch_to_influx(samples: &[BatteryInfo]) -> String {
+pub fn batch_to_influx(samples: &[Sample]) -> String {
     use crate::alarm::ChargeDischargeStatus;
     use crate::alarm::Status1;
     use crate::alarm::Status2;
@@ -369,7 +388,8 @@ pub fn batch_to_influx(samples: &[BatteryInfo]) -> String {
 
     let mut builder = LineProtocolBuilder::new();
 
-    for info in samples {
+    for sample in samples {
+        let info = &sample.info;
         let ts = info.timestamp.timestamp_nanos_opt().unwrap_or(0);
         let serial = &info.serial;
 
@@ -435,6 +455,29 @@ pub fn batch_to_influx(samples: &[BatteryInfo]) -> String {
         builder = measurement!(builder, "renogy_current", serial, info.current as f64, ts);
         builder = measurement!(
             builder,
+            "renogy_power_watts",
+            serial,
+            info.power_watts() as f64,
+            ts
+        );
+        if let Some(energy) = sample.energy {
+            builder = measurement!(
+                builder,
+                "renogy_charge_energy_wh",
+                serial,
+                energy.charge_wh,
+                ts
+            );
+            builder = measurement!(
+                builder,
+                "renogy_discharge_energy_wh",
+                serial,
+                energy.discharge_wh,
+                ts
+            );
+        }
+        builder = measurement!(
+            builder,
             "renogy_remaining_capacity_ah",
             serial,
             info.remaining_capacity as f64,
@@ -445,6 +488,13 @@ pub fn batch_to_influx(samples: &[BatteryInfo]) -> String {
             "renogy_total_capacity_ah",
             serial,
             info.total_capacity as f64,
+            ts
+        );
+        builder = measurement!(
+            builder,
+            "renogy_remaining_energy_wh",
+            serial,
+            info.remaining_energy_wh() as f64,
             ts
         );
         builder = measurement!(

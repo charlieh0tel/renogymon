@@ -71,6 +71,11 @@ journalctl -u renogymon-aprs -f
 journalctl -u renogymon-bms-collector -f
 ```
 
+## Grafana
+
+See [GRAFANA.md](GRAFANA.md) for metric names, derived power/energy metrics,
+and panel queries.
+
 ## License
 
 MIT

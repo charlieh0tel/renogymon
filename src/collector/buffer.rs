@@ -1,4 +1,4 @@
-use crate::query::BatteryInfo;
+use crate::collector::energy::Sample;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -12,7 +12,7 @@ pub struct SampleBuffer {
 }
 
 struct BufferInner {
-    samples: VecDeque<BatteryInfo>,
+    samples: VecDeque<Sample>,
     max_samples: usize,
 }
 
@@ -27,7 +27,7 @@ impl SampleBuffer {
         }
     }
 
-    pub fn push(&self, sample: BatteryInfo) {
+    pub fn push(&self, sample: Sample) {
         let mut inner = self.inner.lock().unwrap();
         if inner.samples.len() >= inner.max_samples {
             inner.samples.pop_front();
@@ -41,7 +41,7 @@ impl SampleBuffer {
         inner.samples.push_back(sample);
     }
 
-    pub fn extend_front(&self, samples: Vec<BatteryInfo>) {
+    pub fn extend_front(&self, samples: Vec<Sample>) {
         let mut inner = self.inner.lock().unwrap();
         for sample in samples.into_iter().rev() {
             if inner.samples.len() >= inner.max_samples {
@@ -51,7 +51,7 @@ impl SampleBuffer {
         }
     }
 
-    pub fn drain_all(&self) -> Vec<BatteryInfo> {
+    pub fn drain_all(&self) -> Vec<Sample> {
         let mut inner = self.inner.lock().unwrap();
         self.overflow_logged.store(false, Ordering::Relaxed);
         inner.samples.drain(..).collect()

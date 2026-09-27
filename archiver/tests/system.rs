@@ -18,6 +18,7 @@ use common::MockVm;
 use common::day_noon_ms;
 use common::days_ago;
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
+use renogy::collector::energy::Sample;
 use renogy::collector::metrics::batch_to_influx;
 use renogy::emulator::EmulatedBattery;
 use renogy::query::query_battery;
@@ -52,7 +53,7 @@ async fn battery_through_collector_to_parquet() {
     // Real collector encoding -> mock VM /write.
     reqwest::Client::new()
         .post(format!("{}/write", vm.base))
-        .body(batch_to_influx(&[info]))
+        .body(batch_to_influx(&[Sample { info, energy: None }]))
         .send()
         .await
         .unwrap()
@@ -86,6 +87,8 @@ async fn battery_through_collector_to_parquet() {
     let mut module_v = None;
     let mut current = None;
     let mut soc = None;
+    let mut power = None;
+    let mut energy = None;
     let mut cell_rows = 0;
     let mut saw_battery_label = false;
     for batch in reader {
@@ -111,6 +114,8 @@ async fn battery_through_collector_to_parquet() {
                 "renogy_module_voltage_value" => module_v = Some(value.value(i)),
                 "renogy_current_value" => current = Some(value.value(i)),
                 "renogy_soc_percent_value" => soc = Some(value.value(i)),
+                "renogy_power_watts_value" => power = Some(value.value(i)),
+                "renogy_remaining_energy_wh_value" => energy = Some(value.value(i)),
                 "renogy_cell_voltage_value" => cell_rows += 1,
                 _ => {}
             }
@@ -130,6 +135,8 @@ async fn battery_through_collector_to_parquet() {
         "signed current did not round-trip"
     );
     assert!((soc.expect("soc") - 50.0).abs() < 1e-1);
+    assert!((power.expect("power") + 66.0).abs() < 1e-1);
+    assert!((energy.expect("energy") - 660.0).abs() < 1.0);
     assert_eq!(cell_rows, 4, "expected one row per cell");
     assert!(
         saw_battery_label,

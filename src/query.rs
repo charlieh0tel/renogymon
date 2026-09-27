@@ -56,6 +56,18 @@ pub struct BatteryInfo {
 }
 
 impl BatteryInfo {
+    /// Battery power in watts (positive=charging, negative=discharging).
+    #[must_use]
+    pub fn power_watts(&self) -> f32 {
+        self.module_voltage * self.current
+    }
+
+    /// Stored energy in watt-hours, approximated at the present pack voltage.
+    #[must_use]
+    pub fn remaining_energy_wh(&self) -> f32 {
+        self.module_voltage * self.remaining_capacity
+    }
+
     /// Returns a list of active alarm names from all status registers.
     ///
     /// Excludes non-alarm flags like MOSFET states, FULLY_CHARGED, HEATER_ON, etc.

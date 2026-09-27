@@ -7,6 +7,7 @@ use renogy::any_transport::SERIAL_SCAN_RANGE;
 use renogy::bt2::Bt2Transport;
 use renogy::bt2::discover_bt2_devices;
 use renogy::collector::buffer::SampleBuffer;
+use renogy::collector::energy::EnergyTracker;
 use renogy::collector::metrics::PrometheusMetrics;
 use renogy::collector::server::MetricsServer;
 use renogy::collector::writer::VmWriter;
@@ -16,6 +17,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tracing_subscriber::EnvFilter;
+
+/// Intervals longer than this many polls are not integrated into energy.
+const MAX_GAP_POLLS: u32 = 4;
 
 #[derive(Parser)]
 #[command(name = "renogymon-bms-collector")]
@@ -230,6 +234,7 @@ async fn run_poller(
     cancel: CancellationToken,
 ) {
     let mut interval = tokio::time::interval(poll_interval);
+    let mut energy = EnergyTracker::new(poll_interval * MAX_GAP_POLLS);
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
 
     loop {
@@ -253,7 +258,7 @@ async fn run_poller(
                         info.soc_percent
                     );
                     metrics.update(&info);
-                    buffer.push(info);
+                    buffer.push(energy.observe(info));
                 }
                 None => {
                     tracing::warn!("Failed to query battery at 0x{:02X}", addr);
