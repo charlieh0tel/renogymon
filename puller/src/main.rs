@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command as ProcCommand;
@@ -137,25 +136,34 @@ fn status(dest: &Path) -> Result<(), Box<dyn std::error::Error>> {
         return Ok(());
     };
 
-    let present: HashSet<NaiveDate> = days.iter().copied().collect();
-    let mut missing = Vec::new();
-    let mut d = first;
-    while d <= last {
-        if !present.contains(&d) {
-            missing.push(d);
-        }
-        d += Duration::days(1);
-    }
+    let gaps = missing_ranges(&days);
+    let missing: i64 = gaps.iter().map(|&(a, b)| (b - a).num_days() + 1).sum();
 
     println!("files: {}", days.len());
     println!("range: {first} .. {last}");
-    if missing.is_empty() {
+    if gaps.is_empty() {
         println!("gaps:  none - contiguous");
     } else {
-        println!("gaps:  {} missing day(s):", missing.len());
-        for m in &missing {
-            println!("  {m}");
+        println!(
+            "gaps:  {missing} missing day(s) in {} range(s):",
+            gaps.len()
+        );
+        for (a, b) in gaps {
+            if a == b {
+                println!("  {a}");
+            } else {
+                println!("  {a} .. {b} ({} days)", (b - a).num_days() + 1);
+            }
         }
     }
     Ok(())
+}
+
+/// Inclusive ranges of calendar days absent between consecutive entries of
+/// `days`, which must be sorted and deduplicated.
+fn missing_ranges(days: &[NaiveDate]) -> Vec<(NaiveDate, NaiveDate)> {
+    days.windows(2)
+        .filter(|w| w[1] - w[0] > Duration::days(1))
+        .map(|w| (w[0] + Duration::days(1), w[1] - Duration::days(1)))
+        .collect()
 }

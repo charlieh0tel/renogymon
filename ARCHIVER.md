@@ -391,7 +391,8 @@ Commands:
 - **`status`** scans `ARCHIVER_DEST` for `renogy_YYYY-MM-DD.parquet`, parses the dates,
   and reports:
   - first day, last day, and total files present
-  - **every missing calendar day** in `[first .. last]` (the gap list)
+  - **every missing calendar day** in `[first .. last]` (the gap list), with
+    consecutive missing days collapsed into ranges
   - this is the cutover-verification command: an empty gap list over the expected
     range means the full history is safely on the archive host. (A missing day is
     flagged conservatively — it may be a genuinely data-less day, e.g. the system was
