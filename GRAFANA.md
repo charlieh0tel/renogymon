@@ -4,6 +4,24 @@ How to chart renogymon metrics in Grafana.  The dashboard itself lives in
 Grafana, not in this repo; this file records the metrics and the queries
 behind the panels.
 
+## Dashboard
+
+`grafana/vpc-energy-storage.json` is the dashboard model (uid `adtml5p`), exported
+from Grafana without `id`/`version`.  It expects a Prometheus-type datasource
+pointing at VictoriaMetrics, selected via the hidden `data_source` variable.
+
+Load it with *Dashboards* -> *New* -> *Import*, or over the HTTP API with a
+service-account token (Editor role):
+
+```sh
+jq '{dashboard: ., overwrite: true}' grafana/vpc-energy-storage.json |
+  curl -s -X POST -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+    --data @- http://GRAFANA_HOST:3000/api/dashboards/db
+```
+
+After editing in the UI, re-export (*Export* -> *Export as JSON*, not "for sharing
+externally"), drop `id` and `version`, and commit.
+
 ## Metric Names
 
 `renogymon-bms-collector` pushes to VictoriaMetrics with InfluxDB line
@@ -36,6 +54,13 @@ with no counter resets or interpolation to worry about.
   gap.  (MetricsQL `integrate()` would hold the last value across a gap.)
 - Current is sampled every poll, so load changes faster than the poll interval
   are aliased; the error averages out over long ranges but not over short ones.
+- The BMS reports currents below roughly 0.15 A as exactly zero.  Charging is
+  usually well above that, but small continuous loads are not, so discharge
+  energy undercounts and charge minus discharge stays positive even when
+  stored energy is flat.  Treat that surplus as an estimate of the draw hidden
+  in the dead zone, not as losses.  The BMS's own remaining-Ah counter does not
+  track small currents either; it steps down at a fixed rate and resets to
+  full at end of charge.
 - These are pushed only; they are not on the `/metrics` endpoint, since a
   per-sample value is meaningless to a scraper on a different interval.
 
