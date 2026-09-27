@@ -9,3 +9,13 @@ ARCHIVER_DEST=/var/lib/renogy-archive
 
 # SSH private key (lives only on this host).
 ARCHIVER_SSH_KEY=/var/lib/renogymon-archiver-puller/id_ed25519
+
+# Freshness check (renogymon-archiver-check.timer, hourly).  Mails ALERT_EMAIL
+# via /usr/sbin/sendmail when the set of problems changes: once when something
+# goes stale and once when it recovers.
+#ALERT_EMAIL=root
+#CHECK_MAX_ARCHIVE_AGE_DAYS=3
+
+# VictoriaMetrics on the Pi; setting it enables the live-data check.
+#CHECK_VM_URL=http://rpi4-tailscale-name:8428
+#CHECK_MAX_LIVE_AGE_MINUTES=15

@@ -18,6 +18,8 @@ chrono.workspace = true
 fs2.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+reqwest = { workspace = true, features = ["blocking"] }
+serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
@@ -27,6 +29,7 @@ copyright = "2024-2026, Christopher Hoover"
 section = "utils"
 priority = "optional"
 depends = "$auto, rsync, openssh-client"
+recommends = "default-mta | mail-transport-agent"
 extended-description = """\
 Pulls daily Parquet archives staged by renogymon-archiver on the RPi4 over rsync/SSH \
 (Tailscale), deleting them on the source after a successful transfer."""
@@ -39,8 +42,14 @@ assets = [
 ]
 conf-files = ["/etc/default/renogymon-archiver-puller"]
 
-[package.metadata.deb.systemd-units]
+[[package.metadata.deb.systemd-units]]
 unit-scripts = "systemd"
 unit-name = "renogymon-archiver-puller"
+enable = true
+start = true
+
+[[package.metadata.deb.systemd-units]]
+unit-scripts = "systemd"
+unit-name = "renogymon-archiver-check"
 enable = true
 start = true

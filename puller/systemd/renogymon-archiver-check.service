@@ -1,0 +1,19 @@
+[Unit]
+Description=Check Renogy archive and live data freshness
+After=network-online.target tailscaled.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=renogymon-archiver-puller
+Group=renogymon-archiver-puller
+EnvironmentFile=/etc/default/renogymon-archiver-puller
+ExecStart=/usr/bin/renogymon-archiver-puller check
+# Looser than the puller unit: the local MTA's sendmail may rely on setuid or
+# setgid helpers and write to its spool under /var, which NoNewPrivileges and
+# ProtectSystem=strict would block.
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+ProtectKernelTunables=yes
+ProtectControlGroups=yes

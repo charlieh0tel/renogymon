@@ -367,6 +367,8 @@ like the main crate. It installs:
 /usr/bin/renogymon-archiver-puller                          # the Rust binary
 /usr/lib/systemd/system/renogymon-archiver-puller.service     # started on install
 /usr/lib/systemd/system/renogymon-archiver-puller.timer       # enabled on install
+/usr/lib/systemd/system/renogymon-archiver-check.service      # started on install
+/usr/lib/systemd/system/renogymon-archiver-check.timer        # enabled on install (hourly)
 /usr/lib/sysusers.d/renogymon-archiver-puller.conf          # creates the puller user
 /usr/lib/tmpfiles.d/renogymon-archiver-puller.conf          # creates state + dest dirs
 /etc/default/renogymon-archiver-puller                      # conf-file (config)
@@ -375,7 +377,8 @@ like the main crate. It installs:
 ### The binary
 
 `renogymon-archiver-puller` parses config (clap, with env fallback from the
-`EnvironmentFile`). Runtime deps: `rsync` + `openssh-client`. Two subcommands:
+`EnvironmentFile`). Runtime deps: `rsync` + `openssh-client`, plus a local MTA
+(`sendmail`) for `check` alerts. Three subcommands:
 
 ```
 renogymon-archiver-puller <COMMAND>
@@ -383,6 +386,7 @@ renogymon-archiver-puller <COMMAND>
 Commands:
   pull      Pull staged files from the Pi and delete-on-success (run by the timer)
   status    Audit the local archive dir for completeness / gaps
+  check     Mail an alert when the archive or the Pi's live data goes stale
 ```
 
 - **`pull`** takes a `flock`, then execs the system `rsync` as shown under "Pull".
@@ -397,6 +401,25 @@ Commands:
     range means the full history is safely on the archive host. (A missing day is
     flagged conservatively — it may be a genuinely data-less day, e.g. the system was
     down all day, but either way it's worth surfacing.)
+- **`check`** is the pipeline watchdog, run hourly by `renogymon-archiver-check.timer`.
+  It runs on the archive host because the Pi (power, battery, LTE) is the component
+  most likely to be down, and alerting that runs on the Pi dies with it.  It checks:
+  - **archive:** the newest archived day is at most `CHECK_MAX_ARCHIVE_AGE_DAYS`
+    (default 3) old.  Catches everything upstream: Pi down, network down, export or
+    pull broken.  Normal lag is up to 2 days (export and pull are both daily), so do
+    not set this below 3.  Skipped while the archive dir is empty.
+  - **live** (only if `CHECK_VM_URL` is set): queries the Pi's VictoriaMetrics for the
+    age of the newest sample; unreachable, empty, or older than
+    `CHECK_MAX_LIVE_AGE_MINUTES` (default 15) is a problem.  Catches a Pi or network
+    outage within the hour.
+
+  It mails `ALERT_EMAIL` (default `root`) via `/usr/sbin/sendmail` only when the set
+  of problems changes: one message when something goes stale, one when it recovers.
+  The previous set lives in `/var/lib/renogymon-archiver-puller/check-state`.  It
+  exits non-zero while any problem persists, so `systemctl --failed` shows it too.
+  The check unit is less locked down than the puller unit (no `NoNewPrivileges`,
+  `ProtectSystem=full`) because sendmail implementations may need setuid/setgid
+  helpers and their spool under `/var`.
 
 ### `puller/Cargo.toml` (sketch)
 
@@ -446,6 +469,12 @@ ARCHIVER_DEST=/var/lib/renogy-archive
 
 # Private key (lives only on this host)
 ARCHIVER_SSH_KEY=/var/lib/renogymon-archiver-puller/id_ed25519
+
+# Freshness check (see `check` above)
+#ALERT_EMAIL=root
+#CHECK_MAX_ARCHIVE_AGE_DAYS=3
+#CHECK_VM_URL=http://rpi4-tailscale-name:8428
+#CHECK_MAX_LIVE_AGE_MINUTES=15
 ```
 
 ### sysusers / tmpfiles
